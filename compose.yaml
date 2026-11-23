@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root-local-demo
+      MYSQL_DATABASE: bankcore
+    volumes:
+      - bankcore-data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-bankcore.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -u bankcore -pbankcore-demo bankcore -e 'SELECT 1 FROM audit_log LIMIT 1'"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+  api:
+    build: .
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/bankcore?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      DB_USER: bankcore
+      DB_PASSWORD: bankcore-demo
+      ALICE_TOKEN: demo-alice-local
+      BOB_TOKEN: demo-bob-local
+      AUDITOR_TOKEN: demo-auditor-local
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+volumes:
+  bankcore-data:
